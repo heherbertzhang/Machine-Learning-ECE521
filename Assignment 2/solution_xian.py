@@ -134,7 +134,7 @@ def Q1_1():
         tf.reset_default_graph()
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         with sess.as_default():
-            summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 400)
+            summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 20000)
             summarys.append(summary)
         sess.close()
 

@@ -2,9 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4fc4fbb4-a2b4-4a8f-872b-efd27fd8e119" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/Assignment 2.iml" afterPath="$PROJECT_DIR$/.idea/Assignment 2.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/solution_xian.py" afterPath="$PROJECT_DIR$/solution_xian.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -28,8 +25,8 @@
       <file leaf-file-name="solution_xian.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/solution_xian.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1540">
-              <caret line="254" column="10" lean-forward="true" selection-start-line="254" selection-start-column="10" selection-end-line="254" selection-end-column="10" />
+            <state relative-caret-position="396">
+              <caret line="136" column="108" lean-forward="false" selection-start-line="136" selection-start-column="108" selection-end-line="136" selection-end-column="108" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -348,8 +345,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/solution_xian.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1540">
-          <caret line="254" column="10" lean-forward="true" selection-start-line="254" selection-start-column="10" selection-end-line="254" selection-end-column="10" />
+        <state relative-caret-position="396">
+          <caret line="136" column="108" lean-forward="false" selection-start-line="136" selection-start-column="108" selection-end-line="136" selection-end-column="108" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
