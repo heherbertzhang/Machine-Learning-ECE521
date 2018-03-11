@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+
 with np.load("notMNIST.npz") as data :
     Data, Target = data ["images"], data["labels"]
     posClass = 2
@@ -61,14 +62,52 @@ class Linear_Regression_Net:
         self.accuracy = tf.reduce_sum(tf.cast(tf.equal(self.predict, self.Y), tf.float32)) / tf.cast(
             tf.shape(self.Y)[0], tf.float32)
 
+        # self.input_batch=None
+        # self.label_batch=None
+
+
     def add_training_data(self, inputs, labels, batch_size):
-        trainning_data = tf.constant(inputs, dtype=tf.float32)
-        trainning_label = tf.constant(labels, dtype=tf.float32)
-        # create a runner queue, shuffle every epoch
-        x, y = tf.train.slice_input_producer([trainning_data, trainning_label], num_epochs=None, shuffle=True)
-        # build mini-batch
-        epoch = labels.shape[0]
-        self.next_batch_op = tf.train.batch([x, y], batch_size=batch_size)
+
+        self.epoch_size = labels.shape[0]
+        self.trainData=inputs
+        self.trainTarget=labels
+        self.batch_size=batch_size
+
+        def batch_generator(self):
+            while True:
+                for batch_i in range(self.epoch_size // self.batch_size):
+                    start = batch_i * self.batch_size
+                    end = start + self.batch_size
+                    batch_xs = self.trainData[start:end, :]
+                    batch_ys = self.trainTarget[start:end]
+                    yield batch_xs, batch_ys
+
+                remaining = self.epoch_size - end
+                if remaining:
+                    batch_xs = np.concatenate((self.trainData[end:,:], self.trainData[:self.batch_size - remaining,:]), axis=0)
+                    batch_ys = np.concatenate((self.trainTarget[end:] , self.trainTarget[:self.batch_size - remaining]),axis=0)
+                    yield batch_xs, batch_ys
+
+                ##shuffle
+                randIndx = np.arange(len(self.trainData))
+                np.random.shuffle(randIndx)
+                self.trainData, self.trainTarget = self.trainData[randIndx], self.trainTarget[randIndx]
+
+        self.generator=batch_generator(self)
+
+        #method 2 use tensorflow queue runner, slow but memory efficient
+        # self.trainning_data = tf.constant(inputs, dtype=tf.float32)
+        # self.trainning_label = tf.constant(labels, dtype=tf.float32)
+        # # create a runner queue, shuffle every epoch
+        # x, y = tf.train.slice_input_producer([self.trainning_data, self.trainning_label], num_epochs=None, \
+        #                                      capacity= batch_size*10,shuffle=True)
+        # # build mini-batch
+        # self.next_batch_op = tf.train.batch([x, y], batch_size=batch_size,capacity=batch_size*10,num_threads=6)
+
+
+    def get_next_batch(self):
+        return next(self.generator)
+
 
     def init(self, sess=None):
         sess = (sess or tf.get_default_session())
@@ -83,7 +122,10 @@ class Linear_Regression_Net:
 
     def update(self, sess=None):
         sess = sess or tf.get_default_session()
-        input_batch, label_batch = sess.run(self.next_batch_op)
+        # if(self.input_batch==None):
+        #     self.input_batch, self.label_batch = sess.run(self.next_batch_op)
+        # input_batch, label_batch = sess.run(self.next_batch_op)
+        input_batch,label_batch=self.get_next_batch()
         _, loss = sess.run([self.train_op, self.loss], {self.X: input_batch, self.Y: label_batch})
         return loss
 
@@ -166,9 +208,9 @@ def Q1_2():
         sess = tf.Session()
         start = time.time()
         with sess.as_default():
-            summary = net.train(trainData, trainTarget, learning_rate, weight_decay_scale, batch_size, steps=400)
+            summary = net.train(trainData, trainTarget, learning_rate, weight_decay_scale, batch_size, steps=20000)
             summarys.append(summary)
-            losses.append(net.training_loss)
+            losses.append(net.get_loss(trainData,trainTarget))
 
         sess.close()
         end = time.time()
@@ -178,17 +220,17 @@ def Q1_2():
         # Report the final training MSE for each mini-batch value
         # What is the best mini-batch size in terms of training time?
         # Comment on your observation.
-        for time, loss in zip(times, losses):
-            print(str(time) + "," + str(loss))
+    for t, loss in zip(times, losses):
+        print(str(t) + "," + str(loss))
 
-        plt.figure()
-        for i, summary in enumerate(summarys):
-            plt.plot(summary, label='batch_size= ' + str(B[i]))
-            plt.ylabel("training loss")
-            plt.xlabel("number of epochs")
-            plt.title("Q1.2")
-        plt.legend()
-        plt.show()
+    plt.figure()
+    for i, summary in enumerate(summarys):
+        plt.plot(summary, label='batch_size= ' + str(B[i]))
+        plt.ylabel("training loss")
+        plt.xlabel("number of epochs")
+        plt.title("Q1.2")
+    plt.legend()
+    plt.show()
 
 def Q1_3():
     # Q3
@@ -252,4 +294,4 @@ def Q1_4():
         print(str(normal_eqn.get_loss(trainData, trainTarget)))
 
 if __name__ == "__main__":
-    Q1_1()
+    Q1_2()
