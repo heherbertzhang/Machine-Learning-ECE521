@@ -51,7 +51,7 @@ class Linear_Regression_Net:
         y_ = tf.add(tf.matmul(X, W1), b1)
 
         # loss
-        weight_decay = weight_decay_scale / 2 * tf.matmul(tf.transpose(W1), (W1))
+        weight_decay = weight_decay_scale / 2 * tf.norm(W1)**2
         loss = tf.nn.l2_loss(y_ - self.Y) / tf.cast(tf.shape(X)[0], tf.float32) + weight_decay
         self.loss = tf.squeeze(loss)
         self.predict = tf.cast(y_ > 0.5, tf.float32)
@@ -108,10 +108,10 @@ class Linear_Regression_Net:
         self.init()
         loss_val = 0
         for step in range(steps):
-            loss_val = self.update()
+            loss_val = self.update(sess)
             if ((step * batch_size) % epoch_size == 0):
                 summary.append(loss_val)
-                # print(loss_val)
+                print(loss_val)
         self.coord.request_stop()
         self.coord.join(self.threads)
         self.training_loss = loss_val
@@ -120,6 +120,7 @@ class Linear_Regression_Net:
 
 
 def Q1_1():
+
     # Q1
     BATCH_SIZE = 500
     LEARNING_RATES = (0.005, 0.001, 0.0001)
@@ -131,9 +132,9 @@ def Q1_1():
 
     for LEARNING_RATE in LEARNING_RATES:
         tf.reset_default_graph()
-        sess = tf.Session()
+        sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         with sess.as_default():
-            summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 20000)
+            summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 400)
             summarys.append(summary)
         sess.close()
 
@@ -213,37 +214,42 @@ def Q1_4():
     # Q1.4
     class Normal_Equation_Method:
         def optimal_weight(self, inputs, labels, weight_decay):
-            X0 = tf.ones([inputs.shape[0], 1])
-            X = tf.concat(axis=1, values=[tf.constant(inputs, tf.float32), X0])
-            Y = tf.constant(labels, tf.float32)
-            W_ = tf.matmul(tf.transpose(X), X) + weight_decay * tf.constant(np.identity(X.get_shape()[1]), tf.float32)
+            X0 = tf.ones([inputs.shape[0], 1],dtype=tf.float64)
+            X = tf.concat(axis=1, values=[tf.constant(inputs, tf.float64), X0])
+            Y = tf.constant(labels, tf.float64)
+            W_ = tf.matmul(tf.transpose(X), X) + weight_decay * tf.constant(np.identity(X.get_shape()[1]), tf.float64)
             W_ = tf.matmul(tf.matrix_inverse(W_), tf.transpose(X))
             W_ = tf.matmul(W_, Y)
             return W_
 
         def build(self, inputs, labels, weight_decay):
-            self.X_input = tf.placeholder(tf.float32, [None, inputs.shape[1]])
-            X0 = tf.ones([tf.shape(self.X_input)[0], 1])
+            self.X_input = tf.placeholder(tf.float64, [None, inputs.shape[1]])
+            X0 = tf.ones([tf.shape(self.X_input)[0], 1],dtype=tf.float64)
             self.X = tf.concat(axis=1, values=[self.X_input, X0])
-            self.Y = tf.placeholder(tf.float32, [None, 1])
+            self.Y = tf.placeholder(tf.float64, [None, 1])
             self.W_ = self.optimal_weight(inputs, labels, weight_decay)
             self.Y_ = tf.matmul(self.X, self.W_)
-            self.predict = tf.cast(self.Y_ > 0.5, tf.float32)
-            self.accuracy = tf.reduce_sum(tf.cast(tf.equal(self.predict, self.Y), tf.float32)) / tf.cast(
-                tf.shape(self.Y)[0], tf.float32)
+            self.predict = tf.cast(self.Y_ > 0.5, tf.float64)
+            self.accuracy = tf.reduce_sum(tf.cast(tf.equal(self.predict, self.Y), tf.float64)) / tf.cast(
+                tf.shape(self.Y)[0], tf.float64)
+            self.loss = tf.nn.l2_loss(self.Y-self.Y_) / tf.cast(tf.shape(self.X)[0], tf.float64)
 
         def get_accuracy(self, inputs, labels, sess=None):
             sess = sess or tf.get_default_session()
             accu = sess.run(self.accuracy, {self.X_input: inputs, self.Y: labels})
             return accu
+        def get_loss(self, inputs, labels, sess=None):
+            sess = sess or tf.get_default_session()
+            loss = sess.run(self.loss, {self.X_input: inputs, self.Y: labels})
+            return loss
 
     normal_eqn = Normal_Equation_Method()
     tf.reset_default_graph()
     sess = tf.Session()
     with sess.as_default():
         normal_eqn.build(trainData, trainTarget, 0)
-        print(str(normal_eqn.get_accuracy(trainData, trainTarget)))
+        print(str(normal_eqn.get_accuracy(validData, validTarget)))
+        print(str(normal_eqn.get_loss(trainData, trainTarget)))
 
 if __name__ == "__main__":
-    with tf.device('/gpu:0'):
-        Q1_1()
+    Q1_1()
