@@ -409,38 +409,42 @@ class Logistic_Net:
 
         self.init()
         loss_val = 0
+        summary = {'loss_train':[], 'loss_valid':[], 'accuracy_train':[], 'accuracy_valid':[]}
         for step in range(steps):
-            loss_val = self.update(sess)
+            self.update(sess)
             if ((step * batch_size) % epoch_size == 0):
-                summary.append(loss_val)
-                print(loss_val)
-        self.training_loss = loss_val
+                loss_val_train = self.get_loss(trainData, trainTarget)
+                loss_val_valid = self.get_loss(validData, validTarget)
+                accu_train = self.get_accuracy(trainData, trainTarget)
+                accu_valid = self.get_accuracy(trainData, trainTarget)
+                summary['loss_train'].append(loss_val_train)
+                summary['loss_valid'].append(loss_val_valid)
+                summary['accuracy_train'].append(accu_train)
+                summary['accuracy_valid'].append(accu_valid)
         return summary
 
 def Q2_1():
     BATCH_SIZE = 500
-    LEARNING_RATES = (0.005, 0.001, 0.0001)
+    LEARNING_RATE = 0.005
     weight_decay_scale = 0.01
     tf.reset_default_graph()
 
-    summarys = []
     net = Logistic_Net()
-    for LEARNING_RATE in LEARNING_RATES:
-        tf.reset_default_graph()
-        sess=tf.Session()
-        with sess.as_default():
-            summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 400)
-            summarys.append(summary)
+    tf.reset_default_graph()
+    sess=tf.Session()
+    with sess.as_default():
+        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
 
     plt.figure(figsize=(10, 4))
-    for i, summary in enumerate(summarys):
+    for key, points in summary.items():
         s = np.array(summary)
-        plt.plot(s, label=str(LEARNING_RATES[i]) + " loss")
-        # plt.plot(s[:, 1], label=str(LEARNING_RATES[i]) + " accuracy")
+        plt.plot(points, label=key)
+
     plt.legend()
     plt.title("Loss & Accuracy vs Epochs")
     plt.xlabel("Epoch")
     plt.ylabel("Value")
     plt.show()
 if __name__ == "__main__":
-    Q2_1()
+    input_ = input("what question to run?")
+    {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.1':Q2_1}[input_]()
