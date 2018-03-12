@@ -59,8 +59,7 @@ class Linear_Regression_Net:
         self.optimizer = tf.train.GradientDescentOptimizer(learnning_rate)
         self.train_op = self.optimizer.minimize(loss)
         self.init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        self.accuracy = tf.reduce_sum(tf.cast(tf.equal(self.predict, self.Y), tf.float32)) / tf.cast(
-            tf.shape(self.Y)[0], tf.float32)
+        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
 
         # self.input_batch=None
         # self.label_batch=None
