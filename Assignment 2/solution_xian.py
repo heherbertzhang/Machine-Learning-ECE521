@@ -150,6 +150,7 @@ class Linear_Regression_Net:
         for step in range(steps):
             loss_val = self.update(sess)
             if ((step * batch_size) % epoch_size == 0):
+                loss_val=self.get_loss(self.trainData,self.trainTarget)
                 summary.append(loss_val)
                 print(loss_val)
         # self.coord.request_stop()
