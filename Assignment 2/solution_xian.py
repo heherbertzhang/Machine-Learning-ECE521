@@ -358,7 +358,7 @@ class Logistic_Net:
         self.optimizer = tf.train.GradientDescentOptimizer(learnning_rate)
         self.train_op = self.optimizer.minimize(loss)
 
-        self.init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+
 
     def add_training_data(self, inputs, labels, batch_size):
 
@@ -398,6 +398,7 @@ class Logistic_Net:
 
     def init(self, sess=None):
         sess = (sess or tf.get_default_session())
+        self.init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         sess.run(self.init_op)
         return sess
 
@@ -501,8 +502,9 @@ def Q2_2():
 
     net = Logistic_Net()
     sess=tf.Session()
-    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+
     with sess.as_default():
+        optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
         summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000,\
             optimizer = optimizer)
 
