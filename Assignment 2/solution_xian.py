@@ -4,27 +4,27 @@ import matplotlib.pyplot as plt
 
 #traindata1
 import time
-
-with np.load("notMNIST.npz") as data :
-    Data, Target = data ["images"], data["labels"]
-    posClass = 2
-    negClass = 9
-    dataIndx = (Target==posClass) + (Target==negClass)
-    Data = Data[dataIndx]/255.
-    Target = Target[dataIndx].reshape(-1, 1)
-    Target[Target==posClass] = 1
-    Target[Target==negClass] = 0
-    np.random.seed(521)
-    randIndx = np.arange(len(Data))
-    np.random.shuffle(randIndx)
-    Data, Target = Data[randIndx], Target[randIndx]
-    trainData, trainTarget = Data[:3500], Target[:3500]
-    validData, validTarget = Data[3500:3600], Target[3500:3600]
-    testData, testTarget = Data[3600:], Target[3600:]
-#reshape the training data
-trainData = trainData.reshape([trainData.shape[0], -1])
-validData = validData.reshape([validData.shape[0], -1])
-testData=testData.reshape([testData.shape[0], -1])
+trainData, trainTarget, validData, validTarget, testData, testTarget=[None]*6
+# with np.load("notMNIST.npz") as data :
+#     Data, Target = data ["images"], data["labels"]
+#     posClass = 2
+#     negClass = 9
+#     dataIndx = (Target==posClass) + (Target==negClass)
+#     Data = Data[dataIndx]/255.
+#     Target = Target[dataIndx].reshape(-1, 1)
+#     Target[Target==posClass] = 1
+#     Target[Target==negClass] = 0
+#     np.random.seed(521)
+#     randIndx = np.arange(len(Data))
+#     np.random.shuffle(randIndx)
+#     Data, Target = Data[randIndx], Target[randIndx]
+#     trainData, trainTarget = Data[:3500], Target[:3500]
+#     validData, validTarget = Data[3500:3600], Target[3500:3600]
+#     testData, testTarget = Data[3600:], Target[3600:]
+# #reshape the training data
+# trainData = trainData.reshape([trainData.shape[0], -1])
+# validData = validData.reshape([validData.shape[0], -1])
+# testData=testData.reshape([testData.shape[0], -1])
 
 
 
@@ -447,6 +447,9 @@ class Logistic_Net:
                 summary['loss_valid'].append(loss_val_valid)
                 summary['accuracy_train'].append(accu_train)
                 summary['accuracy_valid'].append(accu_valid)
+                print(loss_val_train)
+                print(accu_train)
+
         return summary
 
 def Q2_prep():
@@ -599,19 +602,19 @@ class Multiclass_Logistic_Net(Logistic_Net):
         W1 = tf.get_variable("W1",shape=[num_of_features+1,num_classes],initializer=weight_init, dtype=tf.float32)
         logits = tf.matmul(X, W1)
         # hidden layer
-        sample_numble = tf.cast(tf.shape(Y)[0],tf.float32)
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = Y))
-        self.predict = tf.argmax(tf.nn.softmax(logits), 1,output_type=tf.int32)
+        self.predict = tf.argmax(tf.nn.softmax(logits,dim=1), axis=1,output_type=tf.int32)
         # loss
         weight_decay = weight_decay_scale/2 * tf.norm(W1)**2
         self.loss = cross_entropy_loss + weight_decay
         self.loss = tf.squeeze(self.loss)
-        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.Y,self.predict), tf.float32))
+        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.squeeze(self.Y),tf.squeeze(self.predict)), tf.float32))
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learnning_rate)
         self.train_op = self.optimizer.minimize(self.loss)
 
 def get_data3():
+    global trainData, trainTarget, validData, validTarget, testData, testTarget
     with np.load("notMNIST.npz") as data:
         Data, Target = data ["images"], data["labels"]
         np.random.seed(521)
@@ -628,7 +631,7 @@ def get_data3():
     return trainData, trainTarget, validData, validTarget, testData, testTarget
 
 def Q3_1():
-    trainData, trainTarget, validData, validTarget, testData, testTarget = get_data3()
+    get_data3()
     BATCH_SIZE = 500
     LEARNING_RATE = 0.005
     weight_decay_scale = 0.01
