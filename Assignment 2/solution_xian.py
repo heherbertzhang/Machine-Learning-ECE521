@@ -592,8 +592,6 @@ class Multiclass_Logistic_Net(Logistic_Net):
         X = tf.concat((tf.ones([tf.shape(self.X)[0],1]), self.X), axis=1)
         Y = tf.one_hot(self.Y, num_classes)
         sess=tf.get_default_session()
-        print("start........s")
-        print(sess.run(tf.shape(Y)))
         weight_init = tf.contrib.layers.xavier_initializer(uniform=True)
         const_init = tf.constant_initializer(0.01)
 
@@ -603,12 +601,12 @@ class Multiclass_Logistic_Net(Logistic_Net):
         # hidden layer
         sample_numble = tf.cast(tf.shape(Y)[0],tf.float32)
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = Y))
-        self.predict = tf.argmax(tf.nn.softmax(logits), 1)
+        self.predict = tf.argmax(tf.nn.softmax(logits), 1,output_type=tf.int32)
         # loss
         weight_decay = weight_decay_scale/2 * tf.norm(W1)**2
         self.loss = cross_entropy_loss + weight_decay
         self.loss = tf.squeeze(self.loss)
-        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(Y,1),self.predict), tf.float32))
+        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.Y,self.predict), tf.float32))
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learnning_rate)
         self.train_op = self.optimizer.minimize(self.loss)
