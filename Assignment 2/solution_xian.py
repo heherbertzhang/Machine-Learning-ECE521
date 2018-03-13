@@ -60,7 +60,6 @@ class Linear_Regression_Net:
         self.predict = tf.cast(y_ > 0.5, tf.float32)
         self.optimizer = tf.train.GradientDescentOptimizer(learnning_rate)
         self.train_op = self.optimizer.minimize(loss)
-        self.init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
 
         # self.input_batch=None
@@ -113,6 +112,7 @@ class Linear_Regression_Net:
 
     def init(self, sess=None):
         sess = (sess or tf.get_default_session())
+        self.init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         sess.run(self.init_op)
         # self.coord = tf.train.Coordinator()
         # self.threads = tf.train.start_queue_runners(sess=sess, coord=self.coord)
@@ -138,7 +138,7 @@ class Linear_Regression_Net:
         return sess.run(self.accuracy, {self.X: inputs, self.Y: labels})
 
     def train(self, trainData_rs, trainTarget, learnning_rate, weight_decay_scale, batch_size=500, steps=20000,
-              sess=None):
+              sess=None, optimizer=None, accuList=None):
         sess = sess or tf.get_default_session()
         epoch_size = trainData_rs.shape[0]
 
@@ -146,7 +146,8 @@ class Linear_Regression_Net:
 
         self.add_training_data(trainData_rs, trainTarget, batch_size)
         self.build(trainData_rs.shape[1], learnning_rate, weight_decay_scale)
-
+        if optimizer:
+            self.train_op = optimizer.minimize(self.loss)
         self.init()
         loss_val = 0
         for step in range(steps):
@@ -154,6 +155,8 @@ class Linear_Regression_Net:
             if ((step * batch_size) % epoch_size == 0):
                 loss_val=self.get_loss(self.trainData,self.trainTarget)
                 summary.append(loss_val)
+                if accuList != None:
+                    accuList.append(self.get_accuracy(self.trainData, self.trainTarget))
                 print(loss_val)
         # self.coord.request_stop()
         # self.coord.join(self.threads)
@@ -266,39 +269,37 @@ def Q1_3():
         # (0.98000002, 0.97241378)
         # (0.98000002, 0.96551722)
 
+class Normal_Equation_Method:
+    def optimal_weight(self, inputs, labels, weight_decay):
+        X0 = tf.ones([inputs.shape[0], 1],dtype=tf.float64)
+        X = tf.concat(axis=1, values=[tf.constant(inputs, tf.float64), X0])
+        Y = tf.constant(labels, tf.float64)
+        W_ = tf.matmul(tf.transpose(X), X) + weight_decay * tf.constant(np.identity(X.get_shape()[1]), tf.float64)
+        W_ = tf.matmul(tf.matrix_inverse(W_), tf.transpose(X))
+        W_ = tf.matmul(W_, Y)
+        return W_
+
+    def build(self, inputs, labels, weight_decay):
+        self.X_input = tf.placeholder(tf.float64, [None, inputs.shape[1]])
+        X0 = tf.ones([tf.shape(self.X_input)[0], 1],dtype=tf.float64)
+        self.X = tf.concat(axis=1, values=[self.X_input, X0])
+        self.Y = tf.placeholder(tf.float64, [None, 1])
+        self.W_ = self.optimal_weight(inputs, labels, weight_decay)
+        self.Y_ = tf.matmul(self.X, self.W_)
+        self.predict = tf.cast(self.Y_ > 0.5, tf.float64)
+        self.accuracy = tf.reduce_sum(tf.cast(tf.equal(self.predict, self.Y), tf.float64)) / tf.cast(tf.shape(self.Y)[0], tf.float64)
+        self.loss = tf.nn.l2_loss(self.Y-self.Y_) / tf.cast(tf.shape(self.X)[0], tf.float64)
+
+    def get_accuracy(self, inputs, labels, sess=None):
+        sess = sess or tf.get_default_session()
+        accu = sess.run(self.accuracy, {self.X_input: inputs, self.Y: labels})
+        return accu
+    def get_loss(self, inputs, labels, sess=None):
+        sess = sess or tf.get_default_session()
+        loss = sess.run(self.loss, {self.X_input: inputs, self.Y: labels})
+        return loss
 
 def Q1_4():
-    # Q1.4
-    class Normal_Equation_Method:
-        def optimal_weight(self, inputs, labels, weight_decay):
-            X0 = tf.ones([inputs.shape[0], 1],dtype=tf.float64)
-            X = tf.concat(axis=1, values=[tf.constant(inputs, tf.float64), X0])
-            Y = tf.constant(labels, tf.float64)
-            W_ = tf.matmul(tf.transpose(X), X) + weight_decay * tf.constant(np.identity(X.get_shape()[1]), tf.float64)
-            W_ = tf.matmul(tf.matrix_inverse(W_), tf.transpose(X))
-            W_ = tf.matmul(W_, Y)
-            return W_
-
-        def build(self, inputs, labels, weight_decay):
-            self.X_input = tf.placeholder(tf.float64, [None, inputs.shape[1]])
-            X0 = tf.ones([tf.shape(self.X_input)[0], 1],dtype=tf.float64)
-            self.X = tf.concat(axis=1, values=[self.X_input, X0])
-            self.Y = tf.placeholder(tf.float64, [None, 1])
-            self.W_ = self.optimal_weight(inputs, labels, weight_decay)
-            self.Y_ = tf.matmul(self.X, self.W_)
-            self.predict = tf.cast(self.Y_ > 0.5, tf.float64)
-            self.accuracy = tf.reduce_sum(tf.cast(tf.equal(self.predict, self.Y), tf.float64)) / tf.cast(tf.shape(self.Y)[0], tf.float64)
-            self.loss = tf.nn.l2_loss(self.Y-self.Y_) / tf.cast(tf.shape(self.X)[0], tf.float64)
-
-        def get_accuracy(self, inputs, labels, sess=None):
-            sess = sess or tf.get_default_session()
-            accu = sess.run(self.accuracy, {self.X_input: inputs, self.Y: labels})
-            return accu
-        def get_loss(self, inputs, labels, sess=None):
-            sess = sess or tf.get_default_session()
-            loss = sess.run(self.loss, {self.X_input: inputs, self.Y: labels})
-            return loss
-
     net = Linear_Regression_Net()
     tf.reset_default_graph()
     sess = tf.Session()
@@ -525,6 +526,134 @@ def Q2_2():
     plt.ylabel("Value")
     plt.show()
 
+def Q2_3():
+    tf.reset_default_graph()
+    normal_eqn = Normal_Equation_Method()
+    sess = tf.Session()
+    with sess.as_default():
+        normal_eqn.build(trainData, trainTarget, 0)
+        print(str(normal_eqn.get_accuracy(trainData, trainTarget)))
+        print(str(normal_eqn.get_accuracy(validData, validTarget)))
+        print(str(normal_eqn.get_accuracy(testData, testTarget)))
+
+    # compare logistic
+    BATCH_SIZE = 500
+    LEARNING_RATE = 0.001
+    weight_decay_scale = 0.0
+    tf.reset_default_graph()
+
+    net = Logistic_Net()
+    sess=tf.Session()
+
+    with sess.as_default():
+        optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+        summary2 = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000,\
+            optimizer = optimizer)
+        print(str(net.get_accuracy(trainData, trainTarget)))
+        print(str(net.get_accuracy(validData, validTarget)))
+        print(str(net.get_accuracy(testData, testTarget)))
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(summary2['loss_train'], label='trainning_loss_logistic')
+    plt.plot(summary2['accuracy_train'], label='trainning_accuracy_logistic')
+
+    tf.reset_default_graph()
+    net = Linear_Regression_Net()
+    sess = tf.Session()
+
+    with sess.as_default():
+        optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+        accuList = list()
+        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, steps=5000, \
+            optimizer=optimizer, accuList=accuList)
+    plt.plot(summary, label='trainning_loss_linear_reg')
+    plt.plot(accuList, label='trainning_accuracy_linear_reg')
+
+    plt.legend()
+    plt.title("Loss vs Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Value")
+    plt.show()
+
+class Multiclass_Logistic_Net(Logistic_Net):
+    def __init__(self, num_classes):
+        Logistic_Net.__init__(self)
+        self.num_classes = num_classes
+
+    def build(self,num_of_features, learnning_rate, weight_decay_scale):
+        num_classes = self.num_classes
+        # Input data
+        self.X = tf.placeholder(
+            dtype=tf.float32,
+            shape=[None, num_of_features])
+        self.Y = tf.placeholder(
+            dtype=tf.int32,
+            shape=[None, 1])
+        X = tf.concat((tf.ones([tf.shape(self.X)[0],1]), self.X), axis=1)
+        Y = tf.one_hot(self.Y, num_classes)
+        sess=tf.get_default_session()
+        print("start........s")
+        print(sess.run(tf.shape(Y)))
+        weight_init = tf.contrib.layers.xavier_initializer(uniform=True)
+        const_init = tf.constant_initializer(0.01)
+
+        # weight bias
+        W1 = tf.get_variable("W1",shape=[num_of_features+1,num_classes],initializer=weight_init, dtype=tf.float32)
+        logits = tf.matmul(X, W1)
+        # hidden layer
+        sample_numble = tf.cast(tf.shape(Y)[0],tf.float32)
+        cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = Y))
+        self.predict = tf.argmax(tf.nn.softmax(logits), 1)
+        # loss
+        weight_decay = weight_decay_scale/2 * tf.norm(W1)**2
+        self.loss = cross_entropy_loss + weight_decay
+        self.loss = tf.squeeze(self.loss)
+        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(Y,1),self.predict), tf.float32))
+
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=learnning_rate)
+        self.train_op = self.optimizer.minimize(self.loss)
+
+def get_data3():
+    with np.load("notMNIST.npz") as data:
+        Data, Target = data ["images"], data["labels"]
+        np.random.seed(521)
+        randIndx = np.arange(len(Data))
+        np.random.shuffle(randIndx)
+        Data = Data[randIndx]/255.
+        Target = Target[randIndx].reshape([-1,1])
+        trainData, trainTarget = Data[:15000], Target[:15000]
+        validData, validTarget = Data[15000:16000], Target[15000:16000]
+        testData, testTarget = Data[16000:], Target[16000:]
+    trainData = trainData.reshape([trainData.shape[0], -1])
+    validData = validData.reshape([validData.shape[0], -1])
+    testData = testData.reshape([testData.shape[0], -1])
+    return trainData, trainTarget, validData, validTarget, testData, testTarget
+
+def Q3_1():
+    trainData, trainTarget, validData, validTarget, testData, testTarget = get_data3()
+    BATCH_SIZE = 500
+    LEARNING_RATE = 0.005
+    weight_decay_scale = 0.01
+    tf.reset_default_graph()
+
+    net = Multiclass_Logistic_Net(10)
+    sess=tf.Session()
+
+    with sess.as_default():
+        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
+
+    plt.figure(figsize=(10,4))
+    for key, points in summary.items():
+        s = np.array(summary)
+        plt.plot(points, label=key)
+    plt.legend()
+    plt.title("Values vs Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Value")
+    plt.show()
+
 if __name__ == "__main__":
     input_ = input("what question to run?")
-    {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.0':Q2_prep, '2.1':Q2_1, '2.2':Q2_2}[input_]()
+    {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.0':Q2_prep, '2.1':Q2_1, '2.2':Q2_2,
+    '2.3':Q2_3
+    ,'3.1':Q3_1}[input_]()
