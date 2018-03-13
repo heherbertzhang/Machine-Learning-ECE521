@@ -601,7 +601,7 @@ class Multiclass_Logistic_Net(Logistic_Net):
         # hidden layer
         sample_numble = tf.cast(tf.shape(Y)[0],tf.float32)
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = Y))
-        self.predict = tf.argmax(tf.nn.softmax(logits), 1,output_type=tf.int32)
+        self.predict = tf.cast(tf.argmax(tf.nn.softmax(logits), 1), tf.int32)
         # loss
         weight_decay = weight_decay_scale/2 * tf.norm(W1)**2
         self.loss = cross_entropy_loss + weight_decay
@@ -612,6 +612,7 @@ class Multiclass_Logistic_Net(Logistic_Net):
         self.train_op = self.optimizer.minimize(self.loss)
 
 def get_data3():
+    global trainData, trainTarget, validData, validTarget, testData, testTarget
     with np.load("notMNIST.npz") as data:
         Data, Target = data ["images"], data["labels"]
         np.random.seed(521)
@@ -627,6 +628,7 @@ def get_data3():
     testData = testData.reshape([testData.shape[0], -1])
     return trainData, trainTarget, validData, validTarget, testData, testTarget
 def get_faceData():
+    global trainData, validData, testData, trainTarget, validTarget, testTarget
     def data_segmentation(data_path, target_path, task):
       # task = 0 >> select the name ID targets for face recognition task
       # task = 1 >> select the gender ID targets for gender recognition task
@@ -648,7 +650,9 @@ def get_faceData():
 
     trainData, validData, testData, trainTarget, validTarget, testTarget = data_segmentation('data.npy', 'target.npy', 0)
     data = [trainData, trainTarget, validData, validTarget, testData, testTarget]
-    return data
+    testTarget = testTarget.reshape([-1,1])
+    validTarget = validTarget.reshape([-1,1])
+    trainTarget = trainTarget.reshape([-1,1])
 
 def Q3_1():
     trainData, trainTarget, validData, validTarget, testData, testTarget = get_data3()
@@ -657,7 +661,7 @@ def Q3_1():
     weight_decay_scale = 0.01
     tf.reset_default_graph()
 
-    net = Multiclass_Logistic_Net(10)
+    net = Multiclass_Logistic_Net()
     sess=tf.Session()
 
     with sess.as_default():
@@ -673,13 +677,13 @@ def Q3_1():
     plt.ylabel("Value")
     plt.show()
 def Q3_2():
-    trainData, trainTarget, validData, validTarget, testData, testTarget = get_faceData()
+    get_faceData()
     BATCH_SIZE = 300
     LEARNING_RATE = 0.005
     weight_decay_scale = 0.01
     tf.reset_default_graph()
 
-    net = Multiclass_Logistic_Net(10)
+    net = Multiclass_Logistic_Net(6)
     sess=tf.Session()
 
     with sess.as_default():
