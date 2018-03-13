@@ -333,8 +333,8 @@ class Logistic_Net:
         self.loss = tf.squeeze(loss)
         self.accuracy = tf.reduce_sum(tf.cast(tf.equal(Y, self.predict), tf.float32)) / sample_numble
 
-        optimizer = tf.train.GradientDescentOptimizer(learnning_rate)
-        self.train_op = optimizer.minimize(loss)
+        self.optimizer = tf.train.GradientDescentOptimizer(learnning_rate)
+        self.train_op = self.optimizer.minimize(loss)
 
         self.init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
@@ -398,7 +398,7 @@ class Logistic_Net:
         return sess.run(self.accuracy, {self.X: inputs, self.Y: labels})
 
     def train(self, trainData, trainTarget, learnning_rate, weight_decay_scale, batch_size=500, steps=20000,
-              sess=None):
+              sess=None, optimizer=None):
         sess = sess or tf.get_default_session()
         epoch_size = trainData.shape[0]
 
@@ -406,6 +406,8 @@ class Logistic_Net:
 
         self.add_training_data(trainData, trainTarget, batch_size)
         self.build(trainData.shape[1], learnning_rate, weight_decay_scale)
+        if optimizer:
+            self.train_op = optimizer.minimize(self.loss)
 
         self.init()
         loss_val = 0
@@ -416,7 +418,7 @@ class Logistic_Net:
                 loss_val_train = self.get_loss(trainData, trainTarget)
                 loss_val_valid = self.get_loss(validData, validTarget)
                 accu_train = self.get_accuracy(trainData, trainTarget)
-                accu_valid = self.get_accuracy(trainData, trainTarget)
+                accu_valid = self.get_accuracy(validData, validTarget)
                 summary['loss_train'].append(loss_val_train)
                 summary['loss_valid'].append(loss_val_valid)
                 summary['accuracy_train'].append(accu_train)
@@ -430,10 +432,10 @@ def Q2_1():
     tf.reset_default_graph()
 
     net = Logistic_Net()
-    tf.reset_default_graph()
     sess=tf.Session()
     with sess.as_default():
         summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
+        print(net.get_accuracy(testData, testTarget))
 
     plt.figure(figsize=(10, 4))
     for key, points in summary.items():
@@ -445,6 +447,37 @@ def Q2_1():
     plt.xlabel("Epoch")
     plt.ylabel("Value")
     plt.show()
+
+def Q2_2():
+    BATCH_SIZE = 500
+    LEARNING_RATE = 0.001
+    weight_decay_scale = 0.01
+    tf.reset_default_graph()
+
+    net = Logistic_Net()
+    sess=tf.Session()
+    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+    with sess.as_default():
+        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000,\
+            optimizer = optimizer)
+
+    # without adam optimizer
+    tf.reset_default_graph()
+    net = Logistic_Net()
+    sess=tf.Session()
+    with sess.as_default():
+        summary2 = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(summary['loss_train'], label='trainning_loss_Adam')
+    plt.plot(summary2['loss_train'], label='trainning_loss_SGD')
+
+    plt.legend()
+    plt.title("Loss vs Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Value")
+    plt.show()
+
 if __name__ == "__main__":
     input_ = input("what question to run?")
-    {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.1':Q2_1}[input_]()
+    {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.1':Q2_1, '2.2':Q2_2}[input_]()
