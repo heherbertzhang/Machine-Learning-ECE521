@@ -628,10 +628,55 @@ def get_data3():
     validData = validData.reshape([validData.shape[0], -1])
     testData = testData.reshape([testData.shape[0], -1])
     return trainData, trainTarget, validData, validTarget, testData, testTarget
+def get_faceData():
+    def data_segmentation(data_path, target_path, task):
+      # task = 0 >> select the name ID targets for face recognition task
+      # task = 1 >> select the gender ID targets for gender recognition task
+      data = np.load(data_path)/255
+      data = np.reshape(data, [-1, 32*32])
+      target = np.load(target_path)
+      np.random.seed(45689)
+      rnd_idx = np.arange(np.shape(data)[0])
+      np.random.shuffle(rnd_idx)
+      trBatch = int(0.8*len(rnd_idx))
+      validBatch = int(0.1*len(rnd_idx))
+      trainData, validData, testData = data[rnd_idx[1:trBatch],:], \
+              data[rnd_idx[trBatch+1:trBatch+validBatch],:],\
+              data[rnd_idx[trBatch+validBatch+1:-1],:]
+      trainTarget, validTarget, testTarget = target[rnd_idx[1:trBatch], task], \
+              target[rnd_idx[trBatch+1:trBatch+validBatch], task],\
+              target[rnd_idx[trBatch+validBatch+1:-1], task]
+      return trainData, validData, testData, trainTarget, validTarget, testTarget
+
+    trainData, validData, testData, trainTarget, validTarget, testTarget = data_segmentation('data.npy', 'target.npy', 0)
+    data = [trainData, trainTarget, validData, validTarget, testData, testTarget]
+    return data
 
 def Q3_1():
     trainData, trainTarget, validData, validTarget, testData, testTarget = get_data3()
     BATCH_SIZE = 500
+    LEARNING_RATE = 0.005
+    weight_decay_scale = 0.01
+    tf.reset_default_graph()
+
+    net = Multiclass_Logistic_Net(10)
+    sess=tf.Session()
+
+    with sess.as_default():
+        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
+
+    plt.figure(figsize=(10,4))
+    for key, points in summary.items():
+        s = np.array(summary)
+        plt.plot(points, label=key)
+    plt.legend()
+    plt.title("Values vs Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Value")
+    plt.show()
+def Q3_2():
+    trainData, trainTarget, validData, validTarget, testData, testTarget = get_faceData()
+    BATCH_SIZE = 300
     LEARNING_RATE = 0.005
     weight_decay_scale = 0.01
     tf.reset_default_graph()
@@ -656,4 +701,5 @@ if __name__ == "__main__":
     input_ = input("what question to run?")
     {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.0':Q2_prep, '2.1':Q2_1, '2.2':Q2_2,
     '2.3':Q2_3
-    ,'3.1':Q3_1}[input_]()
+    ,'3.1':Q3_1
+    ,'3.2':Q3_2}[input_]()
