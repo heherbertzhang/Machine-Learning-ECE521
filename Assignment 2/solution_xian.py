@@ -2,6 +2,8 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+#traindata1
+import time
 
 with np.load("notMNIST.npz") as data :
     Data, Target = data ["images"], data["labels"]
@@ -42,7 +44,7 @@ class Linear_Regression_Net:
         Y = self.Y
 
         # initializer
-        weight_init = tf.random_normal_initializer(0,0.1) #tf.contrib.layers.xavier_initializer(uniform=True)  #
+        weight_init = tf.constant_initializer(0.0001)#tf.random_normal_initializer(0,0.1) #tf.contrib.layers.xavier_initializer(uniform=True)  #
         const_init = tf.constant_initializer(0.01)
 
         # weight bias
@@ -52,7 +54,7 @@ class Linear_Regression_Net:
         y_ = tf.add(tf.matmul(X, W1), b1)
 
         # loss
-        weight_decay = weight_decay_scale / 2 * tf.norm(W1)**2
+        weight_decay = (weight_decay_scale / 2.0) * tf.norm(W1)**2
         loss = tf.nn.l2_loss(y_ - self.Y) / tf.cast(tf.shape(X)[0], tf.float32) + weight_decay
         self.loss = tf.squeeze(loss)
         self.predict = tf.cast(y_ > 0.5, tf.float32)
@@ -249,7 +251,8 @@ def Q1_3():
             summary = net.train(trainData, trainTarget, learning_rate, weight_decay_scale, batch_size, steps=20000)
             validation_accuracy = net.get_accuracy(validData, validTarget)
             test_accuracy = net.get_accuracy(testData, testTarget)
-            accuracys.append((validation_accuracy, test_accuracy))
+            train_accuracy = net.get_accuracy(trainData, trainTarget)
+            accuracys.append((validation_accuracy, test_accuracy,train_accuracy))
     for accuracy in accuracys:
         print(accuracy)
 
@@ -296,14 +299,33 @@ def Q1_4():
             loss = sess.run(self.loss, {self.X_input: inputs, self.Y: labels})
             return loss
 
+    net = Linear_Regression_Net()
+    tf.reset_default_graph()
+    sess = tf.Session()
+    with sess.as_default():
+        start=time.time()
+        summary = net.train(trainData, trainTarget, 0.005, 0, 500, steps=20000)
+        end = time.time()
+        print(net.get_accuracy(validData, validTarget))
+        print(net.get_accuracy(testData, testTarget))
+        print(net.get_accuracy(trainData, trainTarget))
+        print(net.get_loss(trainData, trainTarget))
+        print(end-start)
+
+
     normal_eqn = Normal_Equation_Method()
     tf.reset_default_graph()
     sess = tf.Session()
     with sess.as_default():
+        start = time.time()
         normal_eqn.build(trainData, trainTarget, 0)
+        end = time.time()
         print(str(normal_eqn.get_accuracy(validData, validTarget)))
         print(str(normal_eqn.get_accuracy(testData, testTarget)))
+        print(str(normal_eqn.get_accuracy(trainData, trainTarget)))
         print(str(normal_eqn.get_loss(trainData, trainTarget)))
+        print(end - start)
+
 
 class Logistic_Net:
     def build(self,num_of_features, learnning_rate, weight_decay_scale):
