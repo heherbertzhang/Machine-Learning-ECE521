@@ -447,6 +447,29 @@ class Logistic_Net:
                 summary['accuracy_valid'].append(accu_valid)
         return summary
 
+def Q2_prep():
+    BATCH_SIZE = 500
+    LEARNING_RATES = (0.005, 0.001, 0.0001)
+    weight_decay_scale = 0.01
+    tf.reset_default_graph()
+
+    summarys=[]
+    for LEARNING_RATE in LEARNING_RATES:
+        tf.reset_default_graph()
+        net = Logistic_Net()
+        sess=tf.Session()
+        with sess.as_default():
+            summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
+        summarys.append(summary)
+    for i,summary in enumerate(summarys):
+        plt.plot(summary['loss_train'], label=str(LEARNING_RATES[i])+" loss")
+        plt.plot(summary['accuracy_train'], label=str(LEARNING_RATES[i])+" accuracy")
+    plt.legend()
+    plt.xlabel("Epoch")
+    plt.ylabel("Value")
+    plt.show()
+
+
 def Q2_1():
     BATCH_SIZE = 500
     LEARNING_RATE = 0.005
@@ -502,4 +525,4 @@ def Q2_2():
 
 if __name__ == "__main__":
     input_ = input("what question to run?")
-    {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.1':Q2_1, '2.2':Q2_2}[input_]()
+    {'1.1':Q1_1, '1.2':Q1_2, '1.3':Q1_3, '1.4':Q1_4, '2.0':Q2_prep, '2.1':Q2_1, '2.2':Q2_2}[input_]()
