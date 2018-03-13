@@ -448,7 +448,7 @@ class Logistic_Net:
                 summary['accuracy_train'].append(accu_train)
                 summary['accuracy_valid'].append(accu_valid)
                 print(loss_val_train)
-                print(accu_train)
+                print(accu_valid)
 
         return summary
 
@@ -603,7 +603,7 @@ class Multiclass_Logistic_Net(Logistic_Net):
         logits = tf.matmul(X, W1)
         # hidden layer
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = Y))
-        self.predict = tf.argmax(tf.nn.softmax(logits,dim=1), axis=1,output_type=tf.int32)
+        self.predict = tf.argmax(tf.nn.softmax(logits), axis=1,output_type=tf.int32)
         # loss
         weight_decay = weight_decay_scale/2 * tf.norm(W1)**2
         self.loss = cross_entropy_loss + weight_decay
@@ -663,25 +663,34 @@ def Q3_1():
     weight_decay_scale = 0.01
     tf.reset_default_graph()
 
-    net = Multiclass_Logistic_Net()
+    net = Multiclass_Logistic_Net(10)
     sess=tf.Session()
 
     with sess.as_default():
         summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
+        print('test accuracy:='+str(net.get_accuracy(testData,testTarget)))
 
     plt.figure(figsize=(10,4))
-    for key, points in summary.items():
-        s = np.array(summary)
-        plt.plot(points, label=key)
+    plt.plot(summary['loss_train'], label='loss_train')
+    plt.plot(summary['loss_valid'], label='loss_valid')
     plt.legend()
-    plt.title("Values vs Epochs")
+    plt.title("Loss vs Epochs")
     plt.xlabel("Epoch")
-    plt.ylabel("Value")
+    plt.ylabel("Loss")
+    plt.show()
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(summary['accuracy_train'], label='accuracy_train')
+    plt.plot(summary['accuracy_valid'], label='accuracy_valid')
+    plt.legend()
+    plt.title("Accuracy vs Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
     plt.show()
 def Q3_2():
     get_faceData()
     BATCH_SIZE = 300
-    LEARNING_RATE = 0.005
+    LEARNING_RATE = 0.0005
     weight_decay_scale = 0.01
     tf.reset_default_graph()
 
@@ -689,17 +698,35 @@ def Q3_2():
     sess=tf.Session()
 
     with sess.as_default():
-        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000)
+        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 20000)
+        print('test accuracy:=' + str(net.get_accuracy(testData, testTarget)))
 
-    plt.figure(figsize=(10,4))
-    for key, points in summary.items():
-        s = np.array(summary)
-        plt.plot(points, label=key)
+    plt.figure(figsize=(10, 4))
+    plt.plot(summary['loss_train'], label='loss_train')
+    plt.plot(summary['loss_valid'], label='loss_valid')
     plt.legend()
-    plt.title("Values vs Epochs")
+    plt.title("Loss vs Epochs")
     plt.xlabel("Epoch")
-    plt.ylabel("Value")
+    plt.ylabel("Loss")
     plt.show()
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(summary['accuracy_train'], label='accuracy_train')
+    plt.plot(summary['accuracy_valid'], label='accuracy_valid')
+    plt.legend()
+    plt.title("Accuracy vs Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.show()
+    # plt.figure(figsize=(10,4))
+    # for key, points in summary.items():
+    #     s = np.array(summary)
+    #     plt.plot(points, label=key)
+    # plt.legend()
+    # plt.title("Values vs Epochs")
+    # plt.xlabel("Epoch")
+    # plt.ylabel("Value")
+    # plt.show()
 
 if __name__ == "__main__":
     input_ = input("what question to run?")
