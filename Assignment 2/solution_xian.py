@@ -5,26 +5,28 @@ import matplotlib.pyplot as plt
 #traindata1
 import time
 trainData, trainTarget, validData, validTarget, testData, testTarget=[None]*6
-# with np.load("notMNIST.npz") as data :
-#     Data, Target = data ["images"], data["labels"]
-#     posClass = 2
-#     negClass = 9
-#     dataIndx = (Target==posClass) + (Target==negClass)
-#     Data = Data[dataIndx]/255.
-#     Target = Target[dataIndx].reshape(-1, 1)
-#     Target[Target==posClass] = 1
-#     Target[Target==negClass] = 0
-#     np.random.seed(521)
-#     randIndx = np.arange(len(Data))
-#     np.random.shuffle(randIndx)
-#     Data, Target = Data[randIndx], Target[randIndx]
-#     trainData, trainTarget = Data[:3500], Target[:3500]
-#     validData, validTarget = Data[3500:3600], Target[3500:3600]
-#     testData, testTarget = Data[3600:], Target[3600:]
-# #reshape the training data
-# trainData = trainData.reshape([trainData.shape[0], -1])
-# validData = validData.reshape([validData.shape[0], -1])
-# testData=testData.reshape([testData.shape[0], -1])
+def get_data1():
+    global trainData, trainTarget, validData, validTarget, testData, testTarget
+    with np.load("notMNIST.npz") as data :
+        Data, Target = data ["images"], data["labels"]
+        posClass = 2
+        negClass = 9
+        dataIndx = (Target==posClass) + (Target==negClass)
+        Data = Data[dataIndx]/255.
+        Target = Target[dataIndx].reshape(-1, 1)
+        Target[Target==posClass] = 1
+        Target[Target==negClass] = 0
+        np.random.seed(521)
+        randIndx = np.arange(len(Data))
+        np.random.shuffle(randIndx)
+        Data, Target = Data[randIndx], Target[randIndx]
+        trainData, trainTarget = Data[:3500], Target[:3500]
+        validData, validTarget = Data[3500:3600], Target[3500:3600]
+        testData, testTarget = Data[3600:], Target[3600:]
+    #reshape the training data
+    trainData = trainData.reshape([trainData.shape[0], -1])
+    validData = validData.reshape([validData.shape[0], -1])
+    testData=testData.reshape([testData.shape[0], -1])
 
 
 
@@ -51,8 +53,8 @@ class Linear_Regression_Net:
         W1 = tf.get_variable("W1", shape=[num_of_features, 1], initializer=weight_init, dtype=tf.float32)
         b1 = tf.get_variable("b1", shape=[1, 1], initializer=const_init, dtype=tf.float32)  # broadcast
         # hidden layer
-        y_ = tf.add(tf.matmul(X, W1), b1)
-
+        self.y_ = tf.add(tf.matmul(X, W1), b1)
+        y_=self.y_
         # loss
         weight_decay = (weight_decay_scale / 2.0) * tf.norm(W1)**2
         loss = tf.nn.l2_loss(y_ - self.Y) / tf.cast(tf.shape(X)[0], tf.float32) + weight_decay
@@ -165,7 +167,7 @@ class Linear_Regression_Net:
 
 
 def Q1_1():
-
+    get_data1()
     # Q1
     BATCH_SIZE = 500
     LEARNING_RATES = (0.005, 0.001, 0.0001)
@@ -196,6 +198,7 @@ def Q1_1():
 
 def Q1_2():
     # Q2
+    get_data1()
     import time
     B = [500, 1500, 3500]
     learning_rate = 0.005
@@ -240,6 +243,7 @@ def Q1_2():
     # 385.44294452667236, 0.0128752
 
 def Q1_3():
+    get_data1()
     # Q3
     weight_decay_ratios = [0, 0.001, 0.1, 1]
     batch_size = 500
@@ -349,6 +353,7 @@ class Logistic_Net:
         sample_numble = tf.cast(tf.shape(Y)[0],tf.float32)
         logits = tf.add(tf.matmul(X, W1), b1)
         cross_entropy_loss = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=Y)) / sample_numble
+        self.prob=tf.sigmoid(logits)
         self.predict = tf.cast(tf.sigmoid(logits) > 0.5, tf.float32)
         # loss
         weight_decay = weight_decay_scale / 2 * tf.matmul(tf.transpose(W1), (W1))
@@ -453,6 +458,7 @@ class Logistic_Net:
         return summary
 
 def Q2_prep():
+    get_data1()
     BATCH_SIZE = 500
     LEARNING_RATES = (0.005, 0.001, 0.0001)
     weight_decay_scale = 0.01
@@ -476,6 +482,7 @@ def Q2_prep():
 
 
 def Q2_1():
+    get_data1()
     BATCH_SIZE = 500
     LEARNING_RATE = 0.005
     weight_decay_scale = 0.01
@@ -499,6 +506,7 @@ def Q2_1():
     plt.show()
 
 def Q2_2():
+    get_data1()
     BATCH_SIZE = 500
     LEARNING_RATE = 0.001
     weight_decay_scale = 0.01
@@ -530,6 +538,7 @@ def Q2_2():
     plt.show()
 
 def Q2_3():
+    get_data1()
     tf.reset_default_graph()
     normal_eqn = Normal_Equation_Method()
     sess = tf.Session()
@@ -548,27 +557,57 @@ def Q2_3():
     net = Logistic_Net()
     sess=tf.Session()
 
+
+    linear_graph = []
+    logistic_graph = []
+
     with sess.as_default():
         optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-        summary2 = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 5000,\
+        summary2 = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, 500,\
             optimizer = optimizer)
         print(str(net.get_accuracy(trainData, trainTarget)))
         print(str(net.get_accuracy(validData, validTarget)))
         print(str(net.get_accuracy(testData, testTarget)))
 
+
+        #run prob
+        y2 = []
+        for input,label in zip(testData,testTarget):
+
+            input=input.reshape(1,-1)
+            label=label.reshape(1,-1)
+            logistic_prob = sess.run(tf.squeeze(net.prob), {net.X: input.reshape(1,-1), net.Y: label.reshape(1,-1)})
+            logistic_loss = net.get_loss(input, label)
+            logistic_graph.append(logistic_prob)
+            y2.append(logistic_loss)
+
+
+
+
     plt.figure(figsize=(10, 4))
     plt.plot(summary2['loss_train'], label='trainning_loss_logistic')
     plt.plot(summary2['accuracy_train'], label='trainning_accuracy_logistic')
 
+
     tf.reset_default_graph()
     net = Linear_Regression_Net()
     sess = tf.Session()
-
+    y = []
     with sess.as_default():
         optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
         accuList = list()
-        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, steps=5000, \
+        summary = net.train(trainData, trainTarget, LEARNING_RATE, weight_decay_scale, BATCH_SIZE, steps=500, \
             optimizer=optimizer, accuList=accuList)
+
+
+        #run prob
+        for input,label in zip(testData,testTarget):
+            input = input.reshape(1, -1)
+            label = label.reshape(1, -1)
+            linear_prob=sess.run(tf.squeeze(net.y_),{net.X:input.reshape(1,-1),net.Y:label.reshape(1,-1)})
+            linear_loss=net.get_loss(input,label)
+            linear_graph.append(linear_prob)
+            y.append(linear_loss)
     plt.plot(summary, label='trainning_loss_linear_reg')
     plt.plot(accuList, label='trainning_accuracy_linear_reg')
 
@@ -576,6 +615,15 @@ def Q2_3():
     plt.title("Loss vs Epochs")
     plt.xlabel("Epoch")
     plt.ylabel("Value")
+    plt.show()
+
+    plt.figure(figsize=(10, 4))
+    plt.scatter(linear_graph,y, label="linear")
+    plt.scatter(logistic_graph, y2, label="logistic")
+
+    plt.legend()
+    plt.xlabel("prob")
+    plt.ylabel("loss")
     plt.show()
 
 class Multiclass_Logistic_Net(Logistic_Net):
@@ -608,7 +656,7 @@ class Multiclass_Logistic_Net(Logistic_Net):
         weight_decay = weight_decay_scale/2 * tf.norm(W1)**2
         self.loss = cross_entropy_loss + weight_decay
         self.loss = tf.squeeze(self.loss)
-        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.squeeze(self.Y),tf.squeeze(self.predict)), tf.float32))
+        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.squeeze(self.Y),tf.squeez(self.predict)), tf.float32))
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learnning_rate)
         self.train_op = self.optimizer.minimize(self.loss)
