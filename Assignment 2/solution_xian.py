@@ -656,7 +656,7 @@ class Multiclass_Logistic_Net(Logistic_Net):
         weight_decay = weight_decay_scale/2 * tf.norm(W1)**2
         self.loss = cross_entropy_loss + weight_decay
         self.loss = tf.squeeze(self.loss)
-        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.squeeze(self.Y),tf.squeez(self.predict)), tf.float32))
+        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.squeeze(self.Y),tf.squeeze(self.predict)), tf.float32))
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learnning_rate)
         self.train_op = self.optimizer.minimize(self.loss)
