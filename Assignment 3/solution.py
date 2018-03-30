@@ -262,10 +262,49 @@ def Q1_1(checkpoint_dir="./checkpoint"):
     sess.close()
 
     loss_data = [summary['train_loss'],summary['valid_loss'],summary['test_loss']]
+    # broadcast ones
     error_data = [np.ones([1])-summary['train_accuracy'],np.ones([1])-summary['valid_accuracy'],np.ones([1])-summary['test_accuracy']]
 
     plot(loss_data,['train_loss','valid_loss','test_loss'],"num of epochs","loss","loss vs. epochs")
     plot(error_data, ['train', 'valid', 'test'], "num of epochs", "classification error", "classification error vs. epochs")
+
+def Q1_3():
+    class Dropout_Net(Neural_Network):
+        def __init__(self, num_classes):
+            Neural_Network.__init__(self)
+            self.num_classes = num_classes
+        def build(self, num_of_features=1000, learning_rate=0.005, weight_decay_scale=0):
+            self.X = tf.placeholder(dtype=tf.float32, shape=[None, num_of_features])
+            self.Y = tf.placeholder(dtype=tf.int32, shape=[None])
+            Y = tf.one_hot(self.Y, self.num_classes)
+            X = self.X
+            hidden1 = fully_connected_layer(X, 1000, "hidden1")
+            dropout1 = tf.nn.dropout(hidden1, 0.5)
+            y_ = fully_connected_layer(dropout1, self.num_classes, "output")
+
+            weights = tf.get_collection("weights")
+            weight_decay=0
+            for weight in weights:
+                weight_decay += (weight_decay_scale / 2.0) * tf.reduce_sum(tf.norm(weight) ** 2)
+            cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=y_, labels=Y))
+            self.loss = tf.squeeze(cross_entropy_loss+weight_decay)
+            self.error = tf.squeeze(cross_entropy_loss)
+            self.predict = tf.squeeze(tf.argmax(tf.nn.softmax(y_), axis=1, output_type=tf.int32))
+            self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=learnning_rate)
+            self.train_op = self.optimizer.minimize(self.loss)
+
+    trainData, trainTarget, validData, validTarget, testData, testTarget=load_data1()
+    net = Dropout_Net(10)
+    sess = tf.Session()
+    with sess.as_default():
+        summary=net.train(trainData, trainTarget,validData, validTarget, testData, testTarget, 0.005, weight_decay_scale=0.001,batch_size=500, steps=1000)
+    saver = tf.train.Saver()
+    saver.save(sess, os.path.join("./checkpoint", 'Q1.3_full'))
+    sess.close()
+    error_data = [np.ones([1])-summary['train_accuracy'],np.ones([1])-summary['valid_accuracy'],np.ones([1])-summary['test_accuracy']]
+
+
 
 if __name__ == "__main__":
     input_ = input("what question to run?")
