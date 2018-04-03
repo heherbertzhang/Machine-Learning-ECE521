@@ -276,7 +276,7 @@ def Q1_1(checkpoint_dir="./checkpoint"):
     with sess.as_default():
         summary=net.build_and_train(trainData, trainTarget,validData, validTarget, testData, \
                                     testTarget, 0.001, weight_decay_scale=0.000001,\
-                                    batch_size=100, steps=100000)
+                                    batch_size=1500, steps=10000)
     # saver.save(sess,os.path.join(checkpoint_dir, 'Q1.1_full'))
     sess.close()
 
@@ -289,28 +289,34 @@ def Q1_1(checkpoint_dir="./checkpoint"):
 
 def Q1_2_1():
     hiddens = [100, 500, 1000]
-
+    loss = []
+    classification_error = []
     for hidden in hiddens:
         net = simple_net(10)
         tf.reset_default_graph()
         sess = tf.Session()
+
         with sess.as_default():
-            net.build(trainData.shape[1], learnning_rate=0.005, weight_decay_scale=0.0001, hidden_size=[hidden])
+            net.build(trainData.shape[1], learnning_rate=0.001, weight_decay_scale=0.000001, hidden_size=[hidden])
             summary = net.train(trainData, trainTarget, validData, validTarget, testData, \
-                                          testTarget, 0.005, weight_decay_scale=0.0001, \
-                                          batch_size=100, steps=10000)
-            print(net.get_loss(validData, validTarget))
-            print(1-net.get_accuracy(testData, testTarget))
+                                          testTarget, 0.001, weight_decay_scale=0.000001, \
+                                          batch_size=1500, steps=300)
+            loss.append(net.get_loss(validData, validTarget))
+            classification_error.append(1-net.get_accuracy(testData, testTarget))
         sess.close()
+    print(loss,classification_error)
+    #[0.27146724, 0.30881488, 0.3118587] [0.08700442314147949, 0.08039647340774536, 0.07892805337905884] # batch 500 1000 iter
+    #[0.41982716, 0.4271598, 0.38878557] [0.08406752347946167, 0.08039647340774536, 0.07378852367401123] # batch 1500 3000 iter
+    #[0.29187372, 0.25225523, 0.24494112] [0.09471362829208374, 0.08259910345077515, 0.07782673835754395] # batch 1500 300 iter 0.000001 weight decay
 
 def Q1_2_2():
     net = simple_net(10)
     sess = tf.Session()
     with sess.as_default():
-        net.build(trainData.shape[1], learnning_rate=0.005, weight_decay_scale=0.0001, hidden_size=[500, 500])
+        net.build(trainData.shape[1], learnning_rate=0.001, weight_decay_scale=0.000001, hidden_size=[500, 500])
         summary = net.train(trainData, trainTarget, validData, validTarget, testData, \
-                            testTarget, 0.005, weight_decay_scale=0.0001, \
-                            batch_size=100, steps=10000)
+                            testTarget, 0.001, weight_decay_scale=0.000001, \
+                            batch_size=1500, steps=300)
         print(net.get_loss(validData, validTarget))
         print(1 - net.get_accuracy(validData, validTarget))
         print(net.get_loss(testData, testTarget))
@@ -318,6 +324,14 @@ def Q1_2_2():
     sess.close()
     loss_data = [summary['train_loss'], summary['valid_loss']]
     plot(loss_data, ['train_error', 'valid_error'], "num of epochs", "error", "error vs. epochs")
+    # 0.2715209
+    # 0.06699997186660767
+    # 0.3475434
+    # 0.0734214186668396
+    # 0.2618259
+    # 0.06599998474121094
+    # 0.3647777
+    # 0.07892805337905884
 
 class Dropout_Net(Neural_Network):
     def __init__(self, num_classes):
@@ -331,14 +345,14 @@ class Dropout_Net(Neural_Network):
 
         # hidden layer
         hiddenl = tf.nn.relu(fully_connected_layer(X, hidden_size[0], "hidden_start"))  # apply relu
-        hidden_dol = tf.nn.dropout(hiddenl)
+        hidden_dol = tf.nn.dropout(hiddenl,0.5)
         for i,size in enumerate(hidden_size[1:]):
             hiddenl = tf.nn.relu(fully_connected_layer(hiddenl, size, "hidden_" + str(i+1)))  # apply relu
             hidden_dol =  tf.nn.dropout(\
-                tf.nn.relu(fully_connected_layer(hidden_dol, size, "hidden_" + str(i+1))))
+                tf.nn.relu(fully_connected_layer(hidden_dol, size, "hidden_" + str(i+1))),0.5)
 
         #dropout1 = tf.nn.dropout(hidden, 0.5)
-        y_ = tf.nn.dropout(fully_connected_layer(hidden_dol, self.num_classes, "output"))
+        y_ = tf.nn.dropout(fully_connected_layer(hidden_dol, self.num_classes, "output"),0.5)
         y_no_dropout = fully_connected_layer(hiddenl, self.num_classes, "output_nodp")
         weights = tf.get_collection("weights")
         weight_decay=0
@@ -349,15 +363,16 @@ class Dropout_Net(Neural_Network):
         self.loss = tf.squeeze(cross_entropy_loss)
         self.predict = tf.squeeze(tf.argmax(tf.nn.softmax(y_no_dropout), axis=1, output_type=tf.int32))
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learnning_rate)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         self.train_op = self.optimizer.minimize(self.loss_train)
 
 def Q1_3_1():
     net = Dropout_Net(10)
     sess = tf.Session()
     with sess.as_default():
+        net.build(trainData.shape[1], learning_rate=0.001, weight_decay_scale=0.0000, hidden_size=[1000])
         summary=net.train(trainData, trainTarget,validData, validTarget, testData, testTarget, \
-                          0.001, weight_decay_scale=0, batch_size=100, steps=10000)
+                          0.001, weight_decay_scale=0, batch_size=1500, steps=3000)
     sess.close()
     #error_data = [np.ones([1])-summary['train_accuracy'],np.ones([1])-summary['valid_accuracy'],np.ones([1])-summary['test_accuracy']]
     loss_data = [summary['train_loss'], summary['valid_loss']]
@@ -366,12 +381,14 @@ def Q1_3_1():
 def Q1_3_2():
     sess=tf.Session()
     net=Dropout_Net(10)
-    net.build(trainTarget.shape[1],learning_rate=0.001,weight_decay_scale=0)
+    net.build(trainData.shape[1],learning_rate=0.001,weight_decay_scale=0)
     saver=tf.train.Saver()
-    stoppings=[""]
-    for net_name in ['']:
+    stoppings=["75","150","225","299"]
+    for net_name in ["simple_net_model","Dropout_Net_model"]:
         for progress in stoppings:
-            saver.restore(sess,"./checkpoint/"+net_name+"-"+progress)
+            print("./checkpoint/" + net_name + "-" + progress)
+            saver.restore(sess,os.path.join("./checkpoint", net_name+"-"+progress))
+
             with tf.variable_scope("hidden_start",reuse=True):
                 weight=sess.run(tf.get_variable("W"))
                 for i in range(weight.shape[1]):
@@ -423,4 +440,4 @@ def Q1_4_2():
 
 if __name__ == "__main__":
     input_ = input("what question to run?")
-    {'1.1':Q1_1}[input_]()
+    {'1.1':Q1_1,'1.2.1':Q1_2_1,'1.2.2':Q1_2_2,'1.3.1':Q1_3_1,'1.3.2':Q1_3_2}[input_]()
