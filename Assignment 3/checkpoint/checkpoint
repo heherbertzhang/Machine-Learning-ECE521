@@ -1,6 +1,15 @@
+<<<<<<< HEAD
 model_checkpoint_path: "Dropout_Net_model-2999"
 all_model_checkpoint_paths: "Dropout_Net_model-0"
 all_model_checkpoint_paths: "Dropout_Net_model-750"
 all_model_checkpoint_paths: "Dropout_Net_model-1500"
 all_model_checkpoint_paths: "Dropout_Net_model-2250"
 all_model_checkpoint_paths: "Dropout_Net_model-2999"
+=======
+model_checkpoint_path: "Dropout_Net_model-299"
+all_model_checkpoint_paths: "Dropout_Net_model-0"
+all_model_checkpoint_paths: "Dropout_Net_model-75"
+all_model_checkpoint_paths: "Dropout_Net_model-150"
+all_model_checkpoint_paths: "Dropout_Net_model-225"
+all_model_checkpoint_paths: "Dropout_Net_model-299"
+>>>>>>> 132df8138293f101a0c4e5ff439a35f53e77e394
