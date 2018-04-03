@@ -331,14 +331,14 @@ class Dropout_Net(Neural_Network):
 
         # hidden layer
         hiddenl = tf.nn.relu(fully_connected_layer(X, hidden_size[0], "hidden_start"))  # apply relu
-        hidden_dol = tf.nn.dropout(hiddenl)
+        hidden_dol = tf.nn.dropout(hiddenl, 0.5)
         for i,size in enumerate(hidden_size[1:]):
             hiddenl = tf.nn.relu(fully_connected_layer(hiddenl, size, "hidden_" + str(i+1)))  # apply relu
             hidden_dol =  tf.nn.dropout(\
-                tf.nn.relu(fully_connected_layer(hidden_dol, size, "hidden_" + str(i+1))))
+                tf.nn.relu(fully_connected_layer(hidden_dol, size, "hiddendol_" + str(i+1))), 0.5)
 
         #dropout1 = tf.nn.dropout(hidden, 0.5)
-        y_ = tf.nn.dropout(fully_connected_layer(hidden_dol, self.num_classes, "output"))
+        y_ = tf.nn.dropout(fully_connected_layer(hidden_dol, self.num_classes, "output"),0.5)
         y_no_dropout = fully_connected_layer(hiddenl, self.num_classes, "output_nodp")
         weights = tf.get_collection("weights")
         weight_decay=0
@@ -349,7 +349,7 @@ class Dropout_Net(Neural_Network):
         self.loss = tf.squeeze(cross_entropy_loss)
         self.predict = tf.squeeze(tf.argmax(tf.nn.softmax(y_no_dropout), axis=1, output_type=tf.int32))
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learnning_rate)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         self.train_op = self.optimizer.minimize(self.loss_train)
 
 def Q1_3_1():
@@ -364,12 +364,15 @@ def Q1_3_1():
     plot(loss_data, ['train_error', 'valid_error'], "num of epochs", "error", "error vs. epochs")
 
 def Q1_3_2():
-    sess=tf.Session()
-    net=Dropout_Net(10)
-    net.build(trainTarget.shape[1],learning_rate=0.001,weight_decay_scale=0)
-    saver=tf.train.Saver()
     stoppings=[""]
-    for net_name in ['']:
+    for net_name in ['simple_net_model', 'Dropout_Net_model']:
+        sess = tf.Session()
+        if net_name == 'simple_net_model':
+            net = simple_net(10)
+        else:
+            net = Dropout_Net(10)
+        net.build(trainTarget.shape[1], learning_rate=0.001, weight_decay_scale=0)
+        saver = tf.train.Saver()
         for progress in stoppings:
             saver.restore(sess,"./checkpoint/"+net_name+"-"+progress)
             with tf.variable_scope("hidden_start",reuse=True):
@@ -385,25 +388,35 @@ def Q1_4_1():
     np.random.seed(3475)
     tf.set_random_seed(3475)
     todropout = np.random.randint(0,2)
-    if todropout:
-        net = Dropout_Net(10)
-    else:
-        net = simple_net(10)
-    learning_rate = np.exp(np.random.rand()*3-7.5)
-    layers = np.random.randint(1,6)
+
+    learning_rate = np.exp(np.random.rand() * 3 - 7.5)
+    layers = np.random.randint(1, 6)
     hiddens = []
     for layer in range(layers):
-        hiddens.append(np.random.randint(100,501))
-    weight_decay = np.exp(np.random.rand()*3-9)
-    print(todropout, layers, hiddens, learning_rate, weight_decay)
+        hiddens.append(np.random.randint(100, 501))
+    weight_decay = np.exp(np.random.rand() * 3 - 9)
+
     sess = tf.Session()
-    net.build(trainData.shape[1], learning_rate= learning_rate, \
-              weight_decay_scale=weight_decay, hidden_size=hiddens)
+    if todropout:
+        net = Dropout_Net(10)
+        net.build(trainData.shape[1], learning_rate=learning_rate, \
+                  weight_decay_scale=weight_decay, hidden_size=hiddens)
+    else:
+        net = simple_net(10)
+        net.build(trainData.shape[1], learning_rate=learning_rate, \
+                  weight_decay_scale=weight_decay, hidden_size=hiddens)
+
+
     with sess.as_default():
         summary=net.train(trainData, trainTarget,validData, validTarget, testData, testTarget, \
-                          0.001, weight_decay_scale=0, batch_size=500, steps=1050)
+                         learning_rate, weight_decay_scale=weight_decay, batch_size=1500, steps=300)
         print(1-net.get_accuracy(validData, validTarget))
         print(1-net.get_accuracy(testData, testTarget))
+    print(todropout, layers, hiddens, learning_rate, weight_decay)
+
+    #1 3 [410, 376, 284] 0.0005951274124940402 0.001539334562242609
+    # 0.9240000024437904
+    # 0.8983113095164299
 
 def Q1_4_2():
     learning_rate = 0
@@ -423,4 +436,4 @@ def Q1_4_2():
 
 if __name__ == "__main__":
     input_ = input("what question to run?")
-    {'1.1':Q1_1}[input_]()
+    {'1.4.1':Q1_4_1, '1.1':Q1_1}[input_]()
