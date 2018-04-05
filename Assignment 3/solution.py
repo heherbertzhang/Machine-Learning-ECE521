@@ -30,10 +30,16 @@ def fully_connected_layer(input,num_hidden_unit,name="fully_connected"):
     bias_init = tf.constant_initializer(0.0)
 
     shape=input.get_shape()
-    with tf.variable_scope(name):
-        W = tf.get_variable("W", shape=[shape[-1], num_hidden_unit], initializer=weight_init, dtype=tf.float32)
-        b = tf.get_variable("b", shape=[1,num_hidden_unit], initializer=bias_init, dtype=tf.float32)  # broadcast
-        tf.add_to_collection("weights",W)
+    with tf.variable_scope(name) as scope:
+        try:
+            W = tf.get_variable("W", shape=[shape[-1], num_hidden_unit], initializer=weight_init, dtype=tf.float32)
+            b = tf.get_variable("b", shape=[1,num_hidden_unit], initializer=bias_init, dtype=tf.float32)  # broadcast
+            tf.add_to_collection("weights",W)
+        except Exception as e:
+            scope.reuse_variables()
+            W = tf.get_variable("W")#, shape=[shape[-1], num_hidden_unit], initializer=weight_init, dtype=tf.float32)
+            b = tf.get_variable("b")#, shape=[1, num_hidden_unit], initializer=bias_init, dtype=tf.float32)  # broadcast
+
     y_=tf.add(tf.matmul(input, W), b)
     return y_
 
@@ -344,23 +350,23 @@ class Dropout_Net(Neural_Network):
 
         # hidden layer
         hiddenl = tf.nn.relu(fully_connected_layer(X, hidden_size[0], "hidden_start"))  # apply relu
-
         hidden_dol = tf.nn.dropout(hiddenl, 0.5)
         for i,size in enumerate(hidden_size[1:]):
+            hidden_dol = tf.nn.dropout( \
+                tf.nn.relu(fully_connected_layer(hidden_dol, size, "hidden_" + str(i + 1))), 0.5)
             hiddenl = tf.nn.relu(fully_connected_layer(hiddenl, size, "hidden_" + str(i+1)))  # apply relu
-            hidden_dol =  tf.nn.dropout(\
-                tf.nn.relu(fully_connected_layer(hidden_dol, size, "hiddendol_" + str(i+1))), 0.5)
+
 
         #dropout1 = tf.nn.dropout(hidden, 0.5)
-        y_ = tf.nn.dropout(fully_connected_layer(hidden_dol, self.num_classes, "output"),0.5)
-        y_no_dropout = fully_connected_layer(hiddenl, self.num_classes, "output_nodp")
+        y_ = (fully_connected_layer(hidden_dol, self.num_classes, "output"))
+        y_no_dropout = fully_connected_layer(hiddenl, self.num_classes, "output")
         weights = tf.get_collection("weights")
         weight_decay=0
         for weight in weights:
             weight_decay += (weight_decay_scale / 2.0) * tf.reduce_sum(tf.norm(weight) ** 2)
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_, labels=Y))
         self.loss_train = tf.squeeze(cross_entropy_loss+weight_decay)
-        self.loss = tf.squeeze(cross_entropy_loss)
+        self.loss = tf.squeeze(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_no_dropout, labels=Y)))
         self.predict = tf.squeeze(tf.argmax(tf.nn.softmax(y_no_dropout), axis=1, output_type=tf.int32))
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -372,9 +378,10 @@ def Q1_3_1():
     with sess.as_default():
         net.build(trainData.shape[1], learning_rate=0.001, weight_decay_scale=0.0000, hidden_size=[1000])
         summary=net.train(trainData, trainTarget,validData, validTarget, testData, testTarget, \
-                          0.001, weight_decay_scale=0, batch_size=1500, steps=3000)
+                          0.001, weight_decay_scale=0, batch_size=1500, steps=300)
+        print(net.get_accuracy(testData,testTarget))
     sess.close()
-    #error_data = [np.ones([1])-summary['train_accuracy'],np.ones([1])-summary['valid_accuracy'],np.ones([1])-summary['test_accuracy']]
+    error_data = [np.ones([1])-summary['train_accuracy'],np.ones([1])-summary['valid_accuracy']]
     loss_data = [summary['train_loss'], summary['valid_loss']]
     plot(loss_data, ['train_error', 'valid_error'], "num of epochs", "error", "error vs. epochs")
 
@@ -392,6 +399,7 @@ def Q1_3_2():
             net.train(trainData, trainTarget, validData, validTarget, testData, testTarget, \
                   0.001, weight_decay_scale=0.000001, batch_size=1500, steps=300)
         saver = tf.train.Saver()
+        sample=
         for progress in stoppings:
             print("./checkpoint/" + net_name + "-" + progress)
             saver.restore(sess,os.path.join("./checkpoint", net_name+"-"+progress))
