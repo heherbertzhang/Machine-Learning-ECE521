@@ -66,7 +66,7 @@ class Neural_Network:
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_, labels=Y))
         loss = cross_entropy_loss + weight_decay
         self.loss = tf.squeeze(loss)
-        self.predict = tf.argmax(tf.nn.softmax(y_), axis=1,output_type=tf.int32)
+        self.predict = tf.cast(tf.argmax(tf.nn.softmax(y_), axis=1),tf.int32)
 
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
 
@@ -239,7 +239,7 @@ class simple_net(Neural_Network):
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_, labels=Y))
         loss_train = cross_entropy_loss + weight_decay
         self.loss = tf.squeeze(cross_entropy_loss)
-        self.predict = tf.squeeze(tf.argmax(tf.nn.softmax(y_), axis=1,output_type=tf.int32))
+        self.predict = tf.squeeze(tf.cast(tf.argmax(tf.nn.softmax(y_), axis=1),tf.int32))
 
 
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
@@ -367,7 +367,7 @@ class Dropout_Net(Neural_Network):
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_, labels=Y))
         self.loss_train = tf.squeeze(cross_entropy_loss+weight_decay)
         self.loss = tf.squeeze(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_no_dropout, labels=Y)))
-        self.predict = tf.squeeze(tf.argmax(tf.nn.softmax(y_no_dropout), axis=1, output_type=tf.int32))
+        self.predict = tf.squeeze(tf.cast(tf.argmax(tf.nn.softmax(y_no_dropout), axis=1),tf.int32))
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.predict, self.Y), tf.float32))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         self.train_op = self.optimizer.minimize(self.loss_train)
@@ -378,7 +378,7 @@ def Q1_3_1():
     with sess.as_default():
         net.build(trainData.shape[1], learning_rate=0.001, weight_decay_scale=0.0000, hidden_size=[1000])
         summary=net.train(trainData, trainTarget,validData, validTarget, testData, testTarget, \
-                          0.001, weight_decay_scale=0, batch_size=1500, steps=300)
+                          0.001, weight_decay_scale=0, batch_size=1500, steps=500)
         print(net.get_accuracy(testData,testTarget))
     sess.close()
     error_data = [np.ones([1])-summary['train_accuracy'],np.ones([1])-summary['valid_accuracy']]
@@ -399,7 +399,7 @@ def Q1_3_2():
             net.train(trainData, trainTarget, validData, validTarget, testData, testTarget, \
                   0.001, weight_decay_scale=0.000001, batch_size=1500, steps=300)
         saver = tf.train.Saver()
-        sample=
+        sample= np.random.random_sample()
         for progress in stoppings:
             print("./checkpoint/" + net_name + "-" + progress)
             saver.restore(sess,os.path.join("./checkpoint", net_name+"-"+progress))
